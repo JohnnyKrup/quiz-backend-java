@@ -31,6 +31,9 @@ public class AppUser {
     public AppUser() {}
 
     public AppUser(String username, String email, String password, Role role) {
+        // id wird NICHT gesetzt - JPA kümmert sich darum!
+        // version wird NICHT gesetzt - JPA kümmert sich darum!
+        // Regel, wenn JPA oder die Datenbank die Werte setzen, dann nicht im Konstruktor setzen!
         this.username = username;
         this.email = email;
         this.password = password;
@@ -46,6 +49,10 @@ public class AppUser {
     public void setId(Long id) {
         this.id = id;
     }
+
+    public Long getVersion() { return version; }
+
+    public void setVersion(Long version) { this.version = version; }
 
     public String getUsername() {
         return username;
