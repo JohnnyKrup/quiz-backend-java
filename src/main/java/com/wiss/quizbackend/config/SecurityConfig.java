@@ -41,7 +41,7 @@ public class SecurityConfig {
 
     /**
      * Security Filter Chain - definiert welche URLs geschützt sind
-     * Temporär: Alles erlauben (später mit JWT absichern)
+     * temporär: Alles erlauben (später mit JWT absichern)
      */
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -49,10 +49,9 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())  // CSRF für REST APIs deaktivieren
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()  // Registration/Login öffentlich
-                        .requestMatchers("/h2-console/**").permitAll() // H2 Console (dev only!)
+                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**").permitAll() // Swagger öffentlich
                         .anyRequest().permitAll()  // TEMPORÄR: Alles erlauben
-                )
-                .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin())); // Für H2 Console
+                );
 
         return http.build();
     }
