@@ -82,10 +82,22 @@ public class AppUserService {
 
     /**
      * Findet User by Username (für Login später)
+     *
+     * @param username Der Name des Benutzers
+     * @return Optional mit User oder empty
      */
     public Optional<AppUser> findByUsername(String username) {
         return userRepository.findByUsername(username);
     }
+
+    /**
+     * Findet einen User by E-Mail.
+     * Wird benötigt für Login mit E-Mail.
+     *
+     * @param email Die E-Mail
+     * @return Optional mit User oder empty
+     */
+    public Optional<AppUser> findByEmail(String email) { return userRepository.findByEmail(email); }
 
     /**
      * Authentifiziert User (Vorbereitung für Login)
