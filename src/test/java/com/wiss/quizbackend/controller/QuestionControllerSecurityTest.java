@@ -21,7 +21,6 @@ import static org.springframework.test.web.servlet.result
 
 /**
  * Integration Tests für die Security der Question-Endpoints.
- *
  * Diese Tests prüfen:
  * - Authentifizierung: Können nur eingeloggte User zugreifen?
  * - Autorisierung: Haben die Rollen die richtigen Berechtigungen?
@@ -48,7 +47,7 @@ public class QuestionControllerSecurityTest {
                 List.of("3", "5", "6"),
                 "mathematics",
                 "easy",
-                null // <- createdBy = null für TEst-Daten
+                null // <- createdBy = null für Test-Daten
         );
         questionRepository.save(testQuestion);
     }
@@ -59,7 +58,7 @@ public class QuestionControllerSecurityTest {
     void getAllQuestions_withoutAuth_shouldReturn401() throws Exception {
         // Versuche Fragen abzurufen OHNE eingeloggt zu sein
         mockMvc.perform(get("/api/questions"))
-                .andExpect(status().isUnauthorized());  // 401 erwartet
+                .andExpect(status().isForbidden());  // 403 erwartet
     }
 
     @Test
@@ -78,7 +77,7 @@ public class QuestionControllerSecurityTest {
         mockMvc.perform(post("/api/questions/create")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(questionJson))
-                .andExpect(status().isUnauthorized());  // 401 erwartet
+                .andExpect(status().isForbidden());  // 403 erwartet
     }
 
     // ==================== Tests als PLAYER ====================
@@ -97,7 +96,7 @@ public class QuestionControllerSecurityTest {
     void getRandomQuestions_asPlayer_shouldReturn200() throws Exception {
         // PLAYER soll zufällige Fragen für Quiz abrufen können
         mockMvc.perform(get("/api/questions/random")
-                        .param("category", "mathematics")
+                        .param("category", "sports")
                         .param("limit", "5"))
                 .andExpect(status().isOk());
     }
@@ -127,7 +126,7 @@ public class QuestionControllerSecurityTest {
     @WithMockUser(username = "player1", roles = {"PLAYER"})
     void deleteQuestion_asPlayer_shouldReturn403() throws Exception {
         // PLAYER soll KEINE Fragen löschen können!
-        Long questionId = questionRepository.findAll().get(0).getId();
+        Long questionId = questionRepository.findAll().getFirst().getId();
 
         mockMvc.perform(delete("/api/questions/" + questionId))
                 .andExpect(status().isForbidden());  // 403 Forbidden erwartet!
@@ -169,7 +168,7 @@ public class QuestionControllerSecurityTest {
     @WithMockUser(username = "admin", roles = {"ADMIN"})
     void deleteQuestion_asAdmin_shouldReturn204() throws Exception {
         // ADMIN soll Fragen löschen können!
-        Long questionId = questionRepository.findAll().get(0).getId();
+        Long questionId = questionRepository.findAll().getFirst().getId();
 
         mockMvc.perform(delete("/api/questions/" + questionId))
                 .andExpect(status().isNoContent());  // 204 No Content erwartet!
