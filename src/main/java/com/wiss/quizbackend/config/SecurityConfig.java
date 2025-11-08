@@ -3,11 +3,13 @@ package com.wiss.quizbackend.config;
 import com.wiss.quizbackend.security.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 /**
  * Security-Konfiguration für die Applikation.
@@ -55,11 +57,25 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())  // CSRF für REST APIs deaktivieren
+                // CORS: Cross-Origin Requests erlauben (Frontend auf Port 5173 darf Backend auf 8080 ansprechen)
+                .cors(cors -> cors.configure(http))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()  // Registration/Login öffentlich
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**").permitAll() // Swagger öffentlich
-                        .anyRequest().permitAll()  // TEMPORÄR: Alles erlauben
-                );
+                        // GEÄNDERT: Jetzt braucht jeder Request einen gültigen JWT Token!
+                        // Vorher: permitAll() → Jeder durfte alles
+                        // Jetzt: authenticated() → Nur eingeloggte User
+                        .anyRequest().authenticated()
+                )
+                // Stateless Sessions: Spring speichert KEINE Session-Daten
+                // Jeder Request muss JWT Token mitbringen (Token = Ausweis bei jeder Tür zeigen)
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
+                // NEU: JWT Filter HINZUFÜGEN
+                // der Filter wird VOR dem
+                // UsernamePasswordAuthenticationFilter ausgeführt
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
