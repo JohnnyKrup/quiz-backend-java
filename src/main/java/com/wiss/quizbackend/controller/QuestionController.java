@@ -2,7 +2,7 @@ package com.wiss.quizbackend.controller;
 
 import com.wiss.quizbackend.dto.QuestionDTO;
 import com.wiss.quizbackend.dto.QuestionFormDTO;
-import com.wiss.quizbackend.entity.Question;
+import com.wiss.quizbackend.entity.AppUser;
 import com.wiss.quizbackend.exception.CategoryNotFoundException;
 import com.wiss.quizbackend.exception.DifficultyNotFoundException;
 import com.wiss.quizbackend.exception.InvalidQuestionDataException;
@@ -15,6 +15,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -205,10 +206,12 @@ public class QuestionController {
      * <p>
      * Validiert die Eingabedaten automatisch durch @Valid-Annotation
      * und gibt die erstellte Frage mit generierter ID zurück.
+     * Der Ersteller wird automatisch aus dem JWT Token ermittelt.
      * </p>
      *
-     * @param question die Frage-Daten aus dem Formular
-     * @return Die erstellte Frage mit generierter ID*
+     * @param currentUser Der authentifizierte User (automatisch aus JWT Token)
+     * @param formDTO Die Frage-Daten aus dem Formular
+     * @return Die erstellte Frage mit generierter ID
      * @throws InvalidQuestionDataException bei ungültigen Daten
      */
     @PostMapping("/create")
@@ -216,11 +219,12 @@ public class QuestionController {
     @Operation(summary = "Neue Frage erstellen über Frontend-Form")
     @ApiResponse(responseCode = "201", description = "Frage erfolgreich erstellt")
     @ApiResponse(responseCode = "400", description = "Ungültige Eingabedaten")
-    @PreAuthorize("hasRole('ADMIN')") // ← NEU! Nur Admins dürfen Fragen erstellen
+    @PreAuthorize("hasRole('ADMIN')")
     public QuestionFormDTO createQuestionFromForm(
+            @AuthenticationPrincipal AppUser currentUser,
             @Parameter(description = "Frage-Daten", required = true)
-            @Valid @RequestBody Question question) {
-        return service.createQuestionFromForm(question);
+            @Valid @RequestBody QuestionFormDTO formDTO) {
+        return service.createQuestionFromForm(formDTO, currentUser);
     }
 
 
@@ -249,11 +253,15 @@ public class QuestionController {
 
     /**
      * Aktualisiert eine bestehende Quiz-Frage.
+     * <p>
+     * Der ursprüngliche Ersteller bleibt erhalten, nur die Frage-Daten werden aktualisiert.
+     * </p>
      *
      * @param id Die ID der zu aktualisierenden Frage
-     * @param question Die aktualisierten Frage-Daten des Formulars
+     * @param currentUser Der authentifizierte User (automatisch aus JWT Token)
+     * @param formDTO Die aktualisierten Frage-Daten des Formulars
      * @return Die aktualisierte Frage
-     * @throws QuestionNotFoundException wenn die Frage nicht existiert*
+     * @throws QuestionNotFoundException wenn die Frage nicht existiert
      */
     @PutMapping("/{id}/update")
     @Operation(
@@ -262,12 +270,13 @@ public class QuestionController {
     )
     @ApiResponse(responseCode = "200", description = "Frage erfolgreich editiert")
     @ApiResponse(responseCode = "400", description = "Ungültige Eingabedaten")
-    @PreAuthorize("hasRole('ADMIN')") // ← NEU! Nur Admins dürfen Fragen editieren
+    @PreAuthorize("hasRole('ADMIN')")
     public QuestionFormDTO updateQuestionFromForm(
-            @Parameter(description = "ID der zu aktualisierenden Frage", example = "1")
             @PathVariable Long id,
-            @Valid @RequestBody Question question) {
-        return service.updateQuestionFromForm(id, question);
+            @AuthenticationPrincipal AppUser currentUser,
+            @Parameter(description = "Aktualisierte Frage-Daten", required = true)
+            @Valid @RequestBody QuestionFormDTO formDTO) {
+        return service.updateQuestionFromForm(id, formDTO, currentUser);
     }
 
     /**
@@ -366,26 +375,27 @@ public class QuestionController {
     }
 
     /**
-     * Ruft eine zufällige Auswahl von Fragen einer Kategorie ab.
+     * Ruft eine zufällige Auswahl von Fragen ab.
      * <p>
-     * Nützlich für Quiz-Spiele, um verschiedene Fragen pro Runde zu erhalten.
+     * Wenn eine Kategorie angegeben wird, werden nur Fragen aus dieser Kategorie zurückgegeben.
+     * Ohne Kategorie werden zufällige Fragen aus allen Kategorien ausgewählt.
      * </p>
      *
-     * @param category Die Kategorie der Fragen
+     * @param category Die Kategorie der Fragen (optional)
      * @param limit Die maximale Anzahl Fragen (Standard: 5)
-     * @return Liste zufälliger Fragen der angegebenen Kategorie
+     * @return Liste zufälliger Fragen
      * @throws CategoryNotFoundException wenn die Kategorie ungültig ist
      * @throws IllegalArgumentException wenn limit kleiner als 1 ist
      */
     @GetMapping("/random")
     @Operation(
-            summary = "Zufällige Anzahl Fragen nach Kategorie",
-            description = "Gibt eine zufällige Anzahl an Fragen zurück"
+            summary = "Zufällige Fragen abrufen",
+            description = "Gibt eine zufällige Anzahl an Fragen zurück (optional nach Kategorie gefiltert)"
     )
     @PreAuthorize("hasAnyRole('ADMIN', 'PLAYER')")
     public List<QuestionDTO> getRandomQuestions(
-            @Parameter(description = "Kategorie", example = "movies")
-            @RequestParam String category,
+            @Parameter(description = "Kategorie (optional)", example = "movies", required = false)
+            @RequestParam(required = false) String category,
             @Parameter(description = "Anzahl", example = "3")
             @RequestParam(defaultValue = "5") int limit) {
         if(category != null){

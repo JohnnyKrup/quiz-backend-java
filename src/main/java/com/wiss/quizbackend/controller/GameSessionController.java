@@ -1,8 +1,10 @@
 package com.wiss.quizbackend.controller;
 
+import com.wiss.quizbackend.entity.AppUser;
 import com.wiss.quizbackend.entity.GameSession;
 import com.wiss.quizbackend.service.GameSessionService;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -18,13 +20,18 @@ public class GameSessionController {
     /**
      * POST /api/game/start
      * Startet ein neues Quiz-Game
+     *
+     * @param user Der authentifizierte User (automatisch aus JWT Token)
+     * @param category Die Quiz-Kategorie
+     * @param totalQuestions Anzahl der Fragen (default: 10)
+     * @return Die erstellte GameSession
      */
     @PostMapping("/start")
     @ResponseStatus(HttpStatus.CREATED)
-    public GameSession startGame(@RequestParam Long userId,
+    public GameSession startGame(@AuthenticationPrincipal AppUser user,
                                  @RequestParam String category,
                                  @RequestParam(defaultValue = "10") int totalQuestions) {
-        return gameSessionService.startGame(userId, category, totalQuestions);
+        return gameSessionService.startGame(user.getId(), category, totalQuestions);
     }
 
     /**

@@ -2,6 +2,7 @@ package com.wiss.quizbackend.service;
 
 import com.wiss.quizbackend.dto.QuestionDTO;
 import com.wiss.quizbackend.dto.QuestionFormDTO;
+import com.wiss.quizbackend.entity.AppUser;
 import com.wiss.quizbackend.entity.Question;
 import com.wiss.quizbackend.exception.CategoryNotFoundException;
 import com.wiss.quizbackend.exception.DifficultyNotFoundException;
@@ -127,10 +128,21 @@ public class QuestionService {
     /**
      * Create a new Question from the Frontend-Form
      *
-     * @param question The question designed for collecting Question data
+     * @param formDTO The question data from the form
+     * @param creator The authenticated user creating the question
      * @return A question Form DTO that can be used in the Question Manager
      */
-    public QuestionFormDTO createQuestionFromForm(Question question) {
+    public QuestionFormDTO createQuestionFromForm(QuestionFormDTO formDTO, AppUser creator) {
+        // Create Question entity with creator set from authenticated user
+        Question question = new Question(
+            formDTO.getQuestion(),
+            formDTO.getCorrectAnswer(),
+            formDTO.getIncorrectAnswers(),
+            formDTO.getCategory(),
+            formDTO.getDifficulty(),
+            creator  // ✅ Set creator from authenticated user
+        );
+
         Question saved = repository.save(question);
         return QuestionMapper.toFormDTO(saved);
     }
@@ -156,16 +168,33 @@ public class QuestionService {
         return QuestionMapper.toDTO(updatedEntity);
     }
 
-    public QuestionFormDTO updateQuestionFromForm(Long id, Question question){
-        // Prüfen ob Frage existiert
-        if(!repository.existsById(id)){
+    /**
+     * Update an existing Question from the Frontend-Form
+     *
+     * @param id The ID of the question to update
+     * @param formDTO The updated question data from the form
+     * @param currentUser The authenticated user (for audit purposes)
+     * @return The updated question as FormDTO
+     */
+    public QuestionFormDTO updateQuestionFromForm(Long id, QuestionFormDTO formDTO, AppUser currentUser) {
+        // Check if question exists
+        if (!repository.existsById(id)) {
             throw new QuestionNotFoundException(id);
         }
-        question.setId(id);
 
-        Question updated = repository.save(question);
+        // Get existing question to preserve createdBy
+        Question existingQuestion = getQuestionById(id);
+
+        // Update fields from formDTO, keep original creator
+        existingQuestion.setQuestion(formDTO.getQuestion());
+        existingQuestion.setCorrectAnswer(formDTO.getCorrectAnswer());
+        existingQuestion.setIncorrectAnswers(formDTO.getIncorrectAnswers());
+        existingQuestion.setCategory(formDTO.getCategory());
+        existingQuestion.setDifficulty(formDTO.getDifficulty());
+        // ✅ createdBy bleibt unverändert (original creator)
+
+        Question updated = repository.save(existingQuestion);
         return QuestionMapper.toFormDTO(updated);
-
     }
 
     /**
