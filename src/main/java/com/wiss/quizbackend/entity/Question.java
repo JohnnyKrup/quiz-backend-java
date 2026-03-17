@@ -12,9 +12,6 @@ public class Question {
     @GeneratedValue(strategy = GenerationType.IDENTITY)  // ← "PostgreSQL macht Auto-Increment"
     private Long id;
 
-    @Version  // Für Optimistic Locking - wichtig für Multi-User!
-    private Long version;
-
     @Column(nullable = false, length = 128)  // ← "Spalte darf nicht NULL sein, max 128 Zeichen"
     private String question;
 
@@ -88,10 +85,6 @@ public class Question {
     public void setId(Long id) {
         this.id = id;
     }
-
-    public Long getVersion() { return version; }
-
-    public void setVersion(Long version) { this.version = version; }
 
     public String getQuestion() {
         return question;

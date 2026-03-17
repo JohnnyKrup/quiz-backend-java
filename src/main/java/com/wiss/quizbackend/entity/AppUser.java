@@ -16,9 +16,6 @@ public class AppUser implements UserDetails {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Version  // Für Optimistic Locking - wichtig für Multi-User!
-    private Long version;
-
     @Column(nullable = false, unique = true, length = 50)
     private String username;
 
@@ -163,10 +160,6 @@ public class AppUser implements UserDetails {
     public void setId(Long id) {
         this.id = id;
     }
-
-    public Long getVersion() { return version; }
-
-    public void setVersion(Long version) { this.version = version; }
 
     public void setUsername(String username) {
         this.username = username;
